@@ -1,39 +1,49 @@
 #include <hermes/error.h>
 
 namespace hermes {
-    const char *ParseError::what() const noexcept {
-        return issue.c_str();
-    }
+    void ParseError::lineDetails(const std::string &text, size_t index, std::string &line, std::string &marker) {
+        size_t lineIndex = index;
 
-    ParseError::ParseError(const State &state, const std::string &message, bool matches) : matches(matches) {
-        size_t index = state.index;
+        if (lineIndex > 0)
+            lineIndex--;
 
-        if (index > 0)
-            index--;
-
-        while (index == state.text.size() || (index > 0 && std::isspace(state.text[index])))
-            index--;
+        while (lineIndex == text.size() || (lineIndex > 0 && std::isspace(text[lineIndex])))
+            lineIndex--;
 
         // this is slow i think
-        auto lineStart = state.text.rfind('\n', index);
+        auto lineStart = text.rfind('\n', lineIndex);
         if (lineStart == std::string::npos) {
             lineStart = 0;
         } else {
             lineStart++;
         }
 
-        auto lineEnd = state.text.find('\n', index);
+        auto lineEnd = text.find('\n', lineIndex);
         if (lineEnd == std::string::npos) {
-            lineEnd = state.text.size();
+            lineEnd = text.size();
         }
 
-        std::string line = state.text.substr(lineStart, lineEnd - lineStart);
+        line = text.substr(lineStart, lineEnd - lineStart);
 
-        auto linePos = index - lineStart;
+        auto linePos = lineIndex - lineStart;
 
-        std::stringstream stream;
-        stream << message << "\n" << line << "\n" << std::string(linePos, ' ') << "^";
+        std::stringstream markerStream;
 
-        issue = stream.str();
+        for (size_t a = 0; a < linePos; a++) {
+            if (std::isspace(line[a]))
+                markerStream << line[a];
+            else
+                markerStream << ' ';
+        }
+        markerStream << '^';
+
+        marker = markerStream.str();
     }
+
+    const char *ParseError::what() const noexcept {
+        return issue.c_str();
+    }
+
+    ParseError::ParseError(const State &state, std::string message, bool matches, bool light)
+        : matches(matches), light(light), issue(std::move(message)), index(state.index) { }
 }

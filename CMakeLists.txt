@@ -12,5 +12,4 @@ add_library(hermes
     src/state.cpp
     src/context.cpp)
 
-target_link_libraries(hermes PUBLIC fmt)
 target_include_directories(hermes PUBLIC include)

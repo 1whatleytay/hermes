@@ -10,13 +10,13 @@ namespace hermes {
         std::string text;
         size_t index = 0;
 
-        void push();
+        void push(const Stoppable &stoppable);
 
-        std::string pull(size_t size);
-        void pop(size_t size);
+        std::string pull(size_t size) const;
+        void pop(size_t size, const Stoppable &stoppable);
         size_t until(const Stoppable &stoppable);
         bool complete(size_t size, const Stoppable &stoppable);
 
-        State(std::string text);
+        explicit State(std::string text);
     };
 }

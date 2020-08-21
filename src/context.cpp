@@ -36,25 +36,31 @@ namespace hermes {
         '\''
     };
 
-    bool Context::defaultStoppable(const char *text, size_t size) {
+    bool Context::notSpace(const char *text, size_t) {
+        return !std::isspace(*text);
+    }
+
+    bool Context::anyHard(const char *text, size_t) {
         return std::isspace(*text)
             || (std::find(hard.begin(), hard.end(), *text) != hard.end());
     }
 
-    void Context::match(bool value) {
-        matches = value;
+    void Context::mark(MatchLevel level) {
+        matchLevel = level;
     }
 
     void Context::error(const std::string &value) {
-        throw ParseError(state, value, matches);
+        throw ParseError(state, value,
+            matchLevel == MatchLevel::Strong, matchLevel == MatchLevel::Light);
     }
 
     void Context::needs(const std::string &value, bool exclusive) {
         if ((!exclusive || state.complete(value.size(), stoppable)) && state.pull(value.size()) == value) {
-            state.pop(value.size());
+            state.pop(value.size(), popStoppable);
         } else {
             std::stringstream stream;
-            stream << "Expected \"" << value  << "\" but got \"" << token() << "\".";
+            auto spaceStop = [](const char *text, size_t size) { return std::isspace(*text); };
+            stream << "Expected \"" << value  << "\" but got \"" << state.pull(state.until(spaceStop)) << "\".";
 
             error(stream.str());
         }
@@ -64,7 +70,7 @@ namespace hermes {
         bool works = (!exclusive || state.complete(value.size(), stoppable)) && state.pull(value.size()) == value;
 
         if (works) {
-            state.pop(value.size());
+            state.pop(value.size(), popStoppable);
         }
 
         return works;
@@ -76,7 +82,10 @@ namespace hermes {
 
     std::string Context::token() {
         std::string result = state.pull(state.until(stoppable));
-        state.pop(result.size());
+        state.pop(result.size(), popStoppable);
+
+        if (result.empty())
+            error("Expected token but got stoppable character.");
 
         return result;
     }
@@ -87,39 +96,42 @@ namespace hermes {
                 return size >= value.size() && std::memcmp(text, value.c_str(), value.size()) == 0;
             });
         }));
-        state.pop(result.size());
+        state.pop(result.size(), popStoppable);
 
         return result;
     }
 
-    std::string Context::select(const std::vector<std::string> &values) {
-        for (const std::string &value : values) {
-            if (next(value)) {
-                return value;
+    size_t Context::select(const std::vector<std::string> &values, bool optional) {
+        for (size_t a = 0; a < values.size(); a++) {
+            if (next(values[a])) {
+                return a;
             }
         }
 
         constexpr size_t selectOptionsCount = 3;
 
-        std::stringstream stream;
+        if (!optional) {
+            std::stringstream stream;
 
-        stream << "Expected one of ";
+            stream << "Expected one of ";
 
-        for (size_t a = 0; a < std::min<size_t>(selectOptionsCount, values.size()); a++) {
-            if (a != 0)
-                stream << " or ";
+            for (size_t a = 0; a < std::min<size_t>(selectOptionsCount, values.size()); a++) {
+                if (a != 0)
+                    stream << " or ";
 
-            stream << "\"" << values[a] << "\"";
+                stream << "\"" << values[a] << "\"";
+            }
+
+            if (values.size() > selectOptionsCount)
+                stream << "...";
+
+            auto spaceStop = [](const char *text, size_t size) { return std::isspace(*text); };
+            stream << " but got " << state.pull(state.until(spaceStop)) << ".";
+
+            error(stream.str());
         }
 
-        if (values.size() > selectOptionsCount)
-            stream << "...";
-
-        stream << " but got " << token() << ".";
-
-        error(stream.str());
-
-        return "";
+        return values.size();
     }
 
     std::unique_ptr<Context> Context::pick(const std::vector<Link> &links, bool optional) {
@@ -135,7 +147,9 @@ namespace hermes {
                     throw;
 
                 state.index = start;
-                error = std::make_unique<ParseError>(e);
+
+                if (!e.light || !error)
+                    error = std::make_unique<ParseError>(e);
             }
         }
 
@@ -159,7 +173,8 @@ namespace hermes {
     }
 
     Context::Context(Context *parent, ssize_t kind)
-        : state(parent->state), parent(parent), index(parent->state.index), kind(kind) { }
+        : state(parent->state), parent(parent), index(parent->state.index), kind(kind),
+        stoppable(parent->stoppable), popStoppable(parent->popStoppable) { }
     Context::Context(State &state, ssize_t kind)
         : state(state), parent(nullptr), index(state.index), kind(kind) { }
 }

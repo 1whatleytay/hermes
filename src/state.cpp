@@ -1,28 +1,24 @@
 #include <hermes/state.h>
 
 namespace hermes {
-    void State::push() {
-        while (index < text.size() && std::isspace(text[index])) {
+    void State::push(const Stoppable &stoppable) {
+        while (index < text.size() && !stoppable(&text[index], text.size() - index)) {
             index++;
         }
     }
 
-    std::string State::pull(size_t size) {
+    std::string State::pull(size_t size) const {
         return text.substr(index, std::min(size, text.size() - index));
     }
 
-    void State::pop(size_t size) {
+    void State::pop(size_t size, const Stoppable &stoppable) {
         index += size;
 
-        push();
+        push(stoppable);
     }
 
     size_t State::until(const Stoppable &stoppable) {
         size_t size = 0;
-
-        if (stoppable(&text[index], text.size() - index)) {
-            return 1;
-        }
 
         while ((index + size) < text.size()) {
             if (stoppable(&text[index + size], text.size() - index - size)) {

@@ -7,12 +7,17 @@
 
 namespace hermes {
     class ParseError : std::exception {
-        std::string issue;
     public:
+        std::string issue;
+        size_t index = 0;
+
         bool matches = false;
+        bool light = false;
 
-        const char* what() const noexcept override;
+        static void lineDetails(const std::string &text, size_t index, std::string &line, std::string &marker);
 
-        ParseError(const State &state, const std::string &message, bool matches = false);
+        [[nodiscard]] const char* what() const noexcept override;
+
+        ParseError(const State &state, std::string message, bool matches = false, bool light = false);
     };
 }
