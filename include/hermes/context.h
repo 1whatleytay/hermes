@@ -1,5 +1,6 @@
 #pragma once
 
+#include <hermes/error.h>
 #include <hermes/state.h>
 
 #include <vector>
@@ -11,31 +12,23 @@ namespace hermes {
 
     using Link = std::function<std::unique_ptr<Context>(Context *parent)>;
 
-    enum class MatchLevel {
-        Priority,
-        Strong,
-        Light,
-    };
-
     class Context {
-        MatchLevel matchLevel = MatchLevel::Light;
-
     public:
         static std::vector<char> hard;
         static bool notSpace(const char *text, size_t size);
         static bool anyHard(const char *text, size_t size);
 
-        ssize_t kind = 0;
+        size_t kind = 0;
         size_t index = 0;
         Context *parent = nullptr;
         Stoppable stoppable = anyHard;
         Stoppable popStoppable = notSpace;
+        MatchLevel level = MatchLevel::Light;
         std::vector<std::unique_ptr<Context>> children;
 
     protected:
         State &state;
 
-        void mark(MatchLevel level);
         void error(const std::string &value);
 
         void needs(const std::string &value, bool exclusive = false);
@@ -79,11 +72,31 @@ namespace hermes {
     public:
         template <typename T>
         T *as() {
-            return static_cast<T *>(this);
+            return dynamic_cast<T *>(this);
         }
 
-        explicit Context(Context *parent, ssize_t kind = -1);
-        explicit Context(State &state, ssize_t kind = -1);
+        template <typename T>
+        T is() {
+            return static_cast<T>(kind);
+        }
+
+        template <typename T>
+        bool is(T value) {
+            return is<T>() == value;
+        }
+
+        explicit Context(Context *parent);
+        explicit Context(State &state);
+
+        template <typename T>
+        Context(Context *parent, T kind) : Context(parent) {
+            this->kind = static_cast<size_t>(kind);
+        }
+
+        template <typename T>
+        Context(State &state, T kind) : Context(state) {
+            this->kind = static_cast<size_t>(kind);
+        }
 
         virtual ~Context() = default;
     };

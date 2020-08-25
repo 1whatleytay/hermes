@@ -1,7 +1,7 @@
 #include <hermes/error.h>
 
 namespace hermes {
-    void ParseError::lineDetails(const std::string &text, size_t index, std::string &line, std::string &marker) {
+    LineDetails::LineDetails(const std::string &text, size_t index) {
         size_t lineIndex = index;
 
         if (lineIndex > 0)
@@ -38,12 +38,18 @@ namespace hermes {
         markerStream << '^';
 
         marker = markerStream.str();
+
+        lineNumber = std::count(text.begin(), text.begin() + lineStart, '\n');
     }
 
     const char *ParseError::what() const noexcept {
         return issue.c_str();
     }
 
-    ParseError::ParseError(const State &state, std::string message, bool matches, bool light)
-        : matches(matches), light(light), issue(std::move(message)), index(state.index) { }
+    ParseError::ParseError(ParseError error, MatchLevel level) : ParseError(std::move(error)) {
+        this->level = level;
+    }
+
+    ParseError::ParseError(const State &state, std::string message, MatchLevel level, size_t kind)
+        : issue(std::move(message)), index(state.index), level(level), kind(kind) { }
 }

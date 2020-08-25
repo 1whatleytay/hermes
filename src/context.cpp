@@ -45,13 +45,8 @@ namespace hermes {
             || (std::find(hard.begin(), hard.end(), *text) != hard.end());
     }
 
-    void Context::mark(MatchLevel level) {
-        matchLevel = level;
-    }
-
     void Context::error(const std::string &value) {
-        throw ParseError(state, value,
-            matchLevel == MatchLevel::Strong, matchLevel == MatchLevel::Light);
+        throw ParseError(state, value, level, kind);
     }
 
     void Context::needs(const std::string &value, bool exclusive) {
@@ -143,12 +138,15 @@ namespace hermes {
             try {
                 return link(this);
             } catch (const ParseError &e) {
-                if (e.matches)
+                if (e.level == MatchLevel::Strong)
                     throw;
+
+                if (level == MatchLevel::Strong)
+                    throw ParseError(e, level);
 
                 state.index = start;
 
-                if (!e.light || !error)
+                if (e.level != MatchLevel::Light || !error)
                     error = std::make_unique<ParseError>(e);
             }
         }
@@ -172,9 +170,9 @@ namespace hermes {
         return result;
     }
 
-    Context::Context(Context *parent, ssize_t kind)
-        : state(parent->state), parent(parent), index(parent->state.index), kind(kind),
+    Context::Context(Context *parent)
+        : state(parent->state), parent(parent), index(parent->state.index),
         stoppable(parent->stoppable), popStoppable(parent->popStoppable) { }
-    Context::Context(State &state, ssize_t kind)
-        : state(state), parent(nullptr), index(state.index), kind(kind) { }
+    Context::Context(State &state)
+        : state(state), parent(nullptr), index(state.index) { }
 }
