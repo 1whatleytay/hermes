@@ -1,9 +1,9 @@
-#include <hermes/context.h>
+#include <hermes/node.h>
 
 #include <hermes/error.h>
 
 namespace hermes {
-    std::vector<char> Context::hard = {
+    std::vector<char> Node::hard = {
         ':',
         ';',
         ',',
@@ -36,22 +36,39 @@ namespace hermes {
         '\''
     };
 
-    bool Context::notSpace(const char *text, size_t) {
+    bool Node::notSpace(const char *text, size_t) {
         return !std::isspace(*text);
     }
 
-    bool Context::anyHard(const char *text, size_t) {
+    bool Node::anyHard(const char *text, size_t) {
         return std::isspace(*text)
             || (std::find(hard.begin(), hard.end(), *text) != hard.end());
     }
 
-    void Context::error(const std::string &value) {
+    void Node::match() {
+        level = MatchLevel::Strong;
+    }
+
+    void Node::error(const std::string &value) {
         throw ParseError(state, value, level, kind);
     }
 
-    void Context::needs(const std::string &value, bool exclusive) {
-        if ((!exclusive || state.complete(value.size(), stoppable)) && state.pull(value.size()) == value) {
-            state.pop(value.size(), popStoppable);
+    bool Node::peek(const std::string &value, bool exclusive) {
+        return (!exclusive || state.complete(value.size(), tokenStoppable)) && state.pull(value.size()) == value;
+    }
+
+    bool Node::next(const std::string &value, bool exclusive) {
+        bool works = (!exclusive || state.complete(value.size(), tokenStoppable)) && state.pull(value.size()) == value;
+
+        if (works)
+            state.pop(value.size(), spaceStoppable);
+
+        return works;
+    }
+
+    void Node::needs(const std::string &value, bool exclusive) {
+        if ((!exclusive || state.complete(value.size(), tokenStoppable)) && state.pull(value.size()) == value) {
+            state.pop(value.size(), spaceStoppable);
         } else {
             std::stringstream stream;
             auto spaceStop = [](const char *text, size_t size) { return std::isspace(*text); };
@@ -61,23 +78,14 @@ namespace hermes {
         }
     }
 
-    bool Context::next(const std::string &value, bool exclusive) {
-        bool works = (!exclusive || state.complete(value.size(), stoppable)) && state.pull(value.size()) == value;
-
-        if (works) {
-            state.pop(value.size(), popStoppable);
-        }
-
-        return works;
+    void Node::match(const std::string &value, bool exclusive) {
+        needs(value, exclusive);
+        match();
     }
 
-    bool Context::peek(const std::string &value, bool exclusive) {
-        return (!exclusive || state.complete(value.size(), stoppable)) && state.pull(value.size()) == value;
-    }
-
-    std::string Context::token() {
-        std::string result = state.pull(state.until(stoppable));
-        state.pop(result.size(), popStoppable);
+    std::string Node::token() {
+        std::string result = state.pull(state.until(tokenStoppable));
+        state.pop(result.size(), spaceStoppable);
 
         if (result.empty())
             error("Expected token but got stoppable character.");
@@ -85,18 +93,18 @@ namespace hermes {
         return result;
     }
 
-    std::string Context::until(const std::vector<std::string> &values) {
+    std::string Node::until(const std::vector<std::string> &values) {
         std::string result = state.pull(state.until([&values](const char *text, size_t size) {
             return std::any_of(values.begin(), values.end(), [text, size](const std::string &value) {
                 return size >= value.size() && std::memcmp(text, value.c_str(), value.size()) == 0;
             });
         }));
-        state.pop(result.size(), popStoppable);
+        state.pop(result.size(), spaceStoppable);
 
         return result;
     }
 
-    size_t Context::select(const std::vector<std::string> &values, bool optional) {
+    size_t Node::select(const std::vector<std::string> &values, bool optional) {
         for (size_t a = 0; a < values.size(); a++) {
             if (next(values[a])) {
                 return a;
@@ -129,7 +137,7 @@ namespace hermes {
         return values.size();
     }
 
-    std::unique_ptr<Context> Context::pick(const std::vector<Link> &links, bool optional) {
+    std::unique_ptr<Node> Node::pick(const std::vector<Link> &links, bool optional) {
         size_t start = state.index;
 
         std::unique_ptr<ParseError> error;
@@ -158,8 +166,8 @@ namespace hermes {
         return nullptr;
     }
 
-    bool Context::push(const std::vector<Link> &links, bool optional) {
-        std::unique_ptr<Context> pointer = pick(links, optional);
+    bool Node::push(const std::vector<Link> &links, bool optional) {
+        std::unique_ptr<Node> pointer = pick(links, optional);
 
         bool result = pointer.get();
 
@@ -170,9 +178,9 @@ namespace hermes {
         return result;
     }
 
-    Context::Context(Context *parent)
+    Node::Node(Node *parent)
         : state(parent->state), parent(parent), index(parent->state.index),
-        stoppable(parent->stoppable), popStoppable(parent->popStoppable) { }
-    Context::Context(State &state)
+        tokenStoppable(parent->tokenStoppable), spaceStoppable(parent->spaceStoppable) { }
+    Node::Node(State &state)
         : state(state), parent(nullptr), index(state.index) { }
 }

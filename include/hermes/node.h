@@ -8,38 +8,39 @@
 #include <unordered_map>
 
 namespace hermes {
-    class Context;
-
-    using Link = std::function<std::unique_ptr<Context>(Context *parent)>;
-
-    class Context {
+    class Node {
     public:
+        using Link = std::function<std::unique_ptr<Node>(Node *parent)>;
+
         static std::vector<char> hard;
         static bool notSpace(const char *text, size_t size);
         static bool anyHard(const char *text, size_t size);
 
         size_t kind = 0;
         size_t index = 0;
-        Context *parent = nullptr;
-        Stoppable stoppable = anyHard;
-        Stoppable popStoppable = notSpace;
+        Node *parent = nullptr;
         MatchLevel level = MatchLevel::Light;
-        std::vector<std::unique_ptr<Context>> children;
+        std::vector<std::unique_ptr<Node>> children;
+
+        Stoppable tokenStoppable = anyHard;
+        Stoppable spaceStoppable = notSpace;
 
     protected:
         State &state;
 
+        void match();
         void error(const std::string &value);
 
-        void needs(const std::string &value, bool exclusive = false);
-        bool next(const std::string &value, bool exclusive = false);
         bool peek(const std::string &value, bool exclusive = false);
+        bool next(const std::string &value, bool exclusive = false);
+        void needs(const std::string &value, bool exclusive = false);
+        void match(const std::string &value, bool exclusive = false);
 
         std::string token();
         std::string until(const std::vector<std::string> &values);
         size_t select(const std::vector<std::string> &values, bool optional = false);
 
-        std::unique_ptr<Context> pick(const std::vector<Link> &links, bool optional = false);
+        std::unique_ptr<Node> pick(const std::vector<Link> &links, bool optional = false);
         bool push(const std::vector<Link> &links, bool optional = false);
 
         template <typename T, typename ... A>
@@ -64,7 +65,7 @@ namespace hermes {
 
         template <typename T, typename ... A>
         Link link(A ... args) {
-            return [args ...](Context *p) {
+            return [args ...](Node *p) {
                 return std::make_unique<T>(p, args ...);
             };
         }
@@ -85,19 +86,19 @@ namespace hermes {
             return is<T>() == value;
         }
 
-        explicit Context(Context *parent);
-        explicit Context(State &state);
+        explicit Node(Node *parent);
+        explicit Node(State &state);
 
         template <typename T>
-        Context(Context *parent, T kind) : Context(parent) {
+        Node(Node *parent, T kind) : Node(parent) {
             this->kind = static_cast<size_t>(kind);
         }
 
         template <typename T>
-        Context(State &state, T kind) : Context(state) {
+        Node(State &state, T kind) : Node(state) {
             this->kind = static_cast<size_t>(kind);
         }
 
-        virtual ~Context() = default;
+        virtual ~Node() = default;
     };
 }
