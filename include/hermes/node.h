@@ -19,7 +19,7 @@ namespace hermes {
         size_t kind = 0;
         size_t index = 0;
         Node *parent = nullptr;
-        MatchLevel level = MatchLevel::Light;
+        MatchLevel level = MatchLevel::Priority;
         std::vector<std::unique_ptr<Node>> children;
 
         Stoppable tokenStoppable = anyHard;
@@ -28,6 +28,7 @@ namespace hermes {
     protected:
         State &state;
 
+        bool end() const;
         void match();
         void error(const std::string &value);
 
@@ -38,7 +39,12 @@ namespace hermes {
 
         std::string token();
         std::string until(const std::vector<std::string> &values);
-        size_t select(const std::vector<std::string> &values, bool optional = false);
+        size_t select(const std::vector<std::string> &values, bool exclusive = false, bool optional = false);
+
+        template <typename T>
+        T select(const std::vector<std::string> &values, bool exclusive = false, bool optional = false) {
+            return static_cast<T>(select(values, exclusive, optional));
+        }
 
         std::unique_ptr<Node> pick(const std::vector<Link> &links, bool optional = false);
         bool push(const std::vector<Link> &links, bool optional = false);
@@ -66,7 +72,7 @@ namespace hermes {
         template <typename T, typename ... A>
         Link link(A ... args) {
             return [args ...](Node *p) {
-                return std::make_unique<T>(p, args ...);
+                return std::unique_ptr<T>(new T(p, args ...));
             };
         }
 

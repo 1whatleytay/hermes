@@ -45,6 +45,10 @@ namespace hermes {
             || (std::find(hard.begin(), hard.end(), *text) != hard.end());
     }
 
+    bool Node::end() const {
+        return state.index == state.text.size();
+    }
+
     void Node::match() {
         level = MatchLevel::Strong;
     }
@@ -104,9 +108,9 @@ namespace hermes {
         return result;
     }
 
-    size_t Node::select(const std::vector<std::string> &values, bool optional) {
+    size_t Node::select(const std::vector<std::string> &values, bool exclusive, bool optional) {
         for (size_t a = 0; a < values.size(); a++) {
-            if (next(values[a])) {
+            if (next(values[a], exclusive)) {
                 return a;
             }
         }
@@ -149,18 +153,18 @@ namespace hermes {
                 if (e.level == MatchLevel::Strong)
                     throw;
 
-                if (level == MatchLevel::Strong)
-                    throw ParseError(e, level);
-
                 state.index = start;
 
                 if (e.level != MatchLevel::Light || !error)
-                    error = std::make_unique<ParseError>(e);
+                    error = std::unique_ptr<ParseError>(new ParseError(e));
             }
         }
 
         if (!optional && error) {
-            throw ParseError(*error);
+            if (level == MatchLevel::Strong)
+                throw ParseError(*error, level);
+            else
+                throw ParseError(*error);
         }
 
         return nullptr;
