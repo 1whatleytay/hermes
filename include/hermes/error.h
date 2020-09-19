@@ -18,7 +18,7 @@ namespace hermes {
 
         size_t lineNumber = 0;
 
-        LineDetails(const std::string &text, size_t index);
+        LineDetails(const std::string &text, size_t index, bool backtrack = true);
     };
 
     class ParseError : std::exception {

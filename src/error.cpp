@@ -1,14 +1,16 @@
 #include <hermes/error.h>
 
 namespace hermes {
-    LineDetails::LineDetails(const std::string &text, size_t index) {
+    LineDetails::LineDetails(const std::string &text, size_t index, bool backtrack) {
         size_t lineIndex = index;
 
-        if (lineIndex > 0)
-            lineIndex--;
+        if (backtrack) {
+            if (lineIndex > 0)
+                lineIndex--;
 
-        while (lineIndex == text.size() || (lineIndex > 0 && std::isspace(text[lineIndex])))
-            lineIndex--;
+            while (lineIndex == text.size() || (lineIndex > 0 && std::isspace(text[lineIndex])))
+                lineIndex--;
+        }
 
         // this is slow i think
         auto lineStart = text.rfind('\n', lineIndex);
