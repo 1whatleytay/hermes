@@ -59,8 +59,13 @@ namespace hermes {
             return std::unique_ptr<T>(dynamic_cast<T *>(pick({ link<T>() }, false).release()));
         }
 
-        template <typename T, typename ... A>
-        bool push(bool optional, A ... args) {
+        template <typename T, typename N, typename ...Args>
+        std::unique_ptr<Node> pick(bool optional = false) {
+            return pick(links<Args...>(), optional);
+        }
+
+        template <typename T, typename ...Args>
+        bool push(bool optional, Args ...args) {
             return push({ link<T>(args ...) }, optional);
         }
 
@@ -69,11 +74,31 @@ namespace hermes {
             return push({ link<T>() }, false);
         }
 
-        template <typename T, typename ... A>
-        Link link(A ... args) {
-            return [args ...](Node *p) {
-                return std::unique_ptr<T>(new T(p, args ...));
+        template <typename T, typename N, typename ...Args>
+        bool push(bool optional = false) {
+            return push(links<T, N, Args...>(), optional);
+        }
+
+        template <typename T, typename ...Args>
+        Link link(Args ...args) {
+            return [args...](Node *p) {
+                return std::unique_ptr<T>(new T(p, args...));
             };
+        }
+
+        template <typename T>
+        std::vector<Link> links() {
+            return { link<T>() };
+        }
+
+        template <typename T, typename N, typename ...Args>
+        std::vector<Link> links() {
+            std::vector<Link> result = links<T>();
+            std::vector<Link> concat = links<N, Args...>();
+
+            result.insert(result.end(), concat.begin(), concat.end());
+
+            return result;
         }
 
     public:
