@@ -108,12 +108,17 @@ namespace hermes {
         }
 
         template <typename T>
-        T is() {
+        const T *as() const {
+            return dynamic_cast<const T *>(this);
+        }
+
+        template <typename T>
+        T is() const {
             return static_cast<T>(kind);
         }
 
         template <typename T>
-        bool is(T value) {
+        bool is(T value) const {
             return is<T>() == value;
         }
 
