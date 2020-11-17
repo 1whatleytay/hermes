@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <functional>
 
 namespace hermes {
     using Stoppable = std::function<bool(const char *, size_t)>;

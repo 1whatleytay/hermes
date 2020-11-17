@@ -41,7 +41,7 @@ namespace hermes {
 
         marker = markerStream.str();
 
-        lineNumber = std::count(text.begin(), text.begin() + lineStart, '\n');
+        lineNumber = std::count(text.begin(), text.begin() + lineStart, '\n') + 1;
     }
 
     const char *ParseError::what() const noexcept {

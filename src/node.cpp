@@ -2,6 +2,8 @@
 
 #include <hermes/error.h>
 
+#include <algorithm>
+
 namespace hermes {
     std::vector<char> Node::hard = {
         ':',
@@ -43,6 +45,10 @@ namespace hermes {
     bool Node::anyHard(const char *text, size_t) {
         return std::isspace(*text)
             || (std::find(hard.begin(), hard.end(), *text) != hard.end());
+    }
+
+    const State &Node::getState() const {
+        return state;
     }
 
     bool Node::end() const {

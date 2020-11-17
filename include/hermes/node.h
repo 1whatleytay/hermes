@@ -25,6 +25,8 @@ namespace hermes {
         Stoppable tokenStoppable = anyHard;
         Stoppable spaceStoppable = notSpace;
 
+        const State &getState() const;
+
     protected:
         State &state;
 
