@@ -1,5 +1,7 @@
 #include <hermes/error.h>
 
+#include <sstream>
+
 namespace hermes {
     LineDetails::LineDetails(const std::string &text, size_t index, bool backtrack) {
         size_t lineIndex = index;
@@ -13,6 +15,7 @@ namespace hermes {
         }
 
         // this is slow i think
+        // TODO: there's an evil bug somewhere here, in weird cases lineStart > lineEnd, going to push temp fix to State
         auto lineStart = text.rfind('\n', lineIndex);
         if (lineStart == std::string::npos) {
             lineStart = 0;

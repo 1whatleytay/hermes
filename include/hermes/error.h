@@ -2,7 +2,6 @@
 
 #include <hermes/state.h>
 
-#include <sstream>
 #include <exception>
 
 namespace hermes {

@@ -2,6 +2,7 @@
 
 #include <hermes/error.h>
 
+#include <sstream>
 #include <algorithm>
 
 namespace hermes {
@@ -192,5 +193,7 @@ namespace hermes {
         : state(parent->state), parent(parent), index(parent->state.index),
         tokenStoppable(parent->tokenStoppable), spaceStoppable(parent->spaceStoppable) { }
     Node::Node(State &state)
-        : state(state), parent(nullptr), index(state.index) { }
+        : state(state), parent(nullptr), index(state.index) {
+        state.push(spaceStoppable);
+    }
 }
