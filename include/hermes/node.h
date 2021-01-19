@@ -63,7 +63,7 @@ namespace hermes {
 
         template <typename T, typename N, typename ...Args>
         std::unique_ptr<Node> pick(bool optional = false) {
-            return pick(links<Args...>(), optional);
+            return pick(links<T, N, Args...>(), optional);
         }
 
         template <typename T, typename ...Args>
