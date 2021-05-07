@@ -99,7 +99,7 @@ namespace hermes {
         state.pop(result.size(), spaceStoppable);
 
         if (result.empty())
-            error("Expected token but got stoppable character.");
+            error("Unexpected character when expected token.");
 
         return result;
     }

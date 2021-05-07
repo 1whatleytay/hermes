@@ -27,7 +27,6 @@ namespace hermes {
 
         const State &getState() const;
 
-    protected:
         State &state;
 
         bool end() const;
@@ -51,9 +50,11 @@ namespace hermes {
         std::unique_ptr<Node> pick(const std::vector<Link> &links, bool optional = false);
         bool push(const std::vector<Link> &links, bool optional = false);
 
-        template <typename T, typename ... A>
-        std::unique_ptr<T> pick(bool optional, A ... args) {
-            return std::unique_ptr<T>(dynamic_cast<T *>(pick({ link<T>(args ...) }, optional).release()));
+        template <typename T, typename ... Args>
+        std::unique_ptr<T> pick(bool optional, Args &&... args) {
+            return std::unique_ptr<T>(dynamic_cast<T *>(pick({
+                link<T>(std::forward<Args>(args) ...)
+            }, optional).release()));
         }
 
         template <typename T>
@@ -67,8 +68,8 @@ namespace hermes {
         }
 
         template <typename T, typename ...Args>
-        bool push(bool optional, Args ...args) {
-            return push({ link<T>(args ...) }, optional);
+        bool push(bool optional, Args &&...args) {
+            return push({ link<T>(std::forward<Args>(args) ...) }, optional);
         }
 
         template <typename T>
@@ -82,7 +83,7 @@ namespace hermes {
         }
 
         template <typename T, typename ...Args>
-        Link link(Args ...args) {
+        Link link(Args... args) {
             return [args...](Node *p) {
                 return std::unique_ptr<T>(new T(p, args...));
             };
@@ -103,7 +104,6 @@ namespace hermes {
             return result;
         }
 
-    public:
         template <typename T>
         T *as() {
             return dynamic_cast<T *>(this);
