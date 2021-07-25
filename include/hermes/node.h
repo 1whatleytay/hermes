@@ -8,6 +8,9 @@
 #include <unordered_map>
 
 namespace hermes {
+    template <typename T>
+    using SelectMap = std::vector<std::pair<std::string, T>>;
+
     class Node {
     public:
         using Link = std::function<std::unique_ptr<Node>(Node *parent)>;
@@ -25,11 +28,11 @@ namespace hermes {
         Stoppable tokenStoppable = anyHard;
         Stoppable spaceStoppable = notSpace;
 
-        const State &getState() const;
+        [[nodiscard]] const State &getState() const;
 
         State &state;
 
-        bool end() const;
+        [[nodiscard]] bool end() const;
         void match();
         void error(const std::string &value);
 
@@ -40,11 +43,31 @@ namespace hermes {
 
         std::string token();
         std::string until(const std::vector<std::string> &values);
-        size_t select(const std::vector<std::string> &values, bool exclusive = false, bool optional = false);
+        size_t attempt(const std::vector<std::string> &values, bool exclusive = false, bool optional = false);
 
         template <typename T>
-        T select(const std::vector<std::string> &values, bool exclusive = false, bool optional = false) {
-            return static_cast<T>(select(values, exclusive, optional));
+        T select(const SelectMap<T> &values, bool exclusive = false) {
+            std::vector<std::string> options(values.size());
+            std::transform(values.begin(), values.end(), options.begin(), [](const auto &pair) { return pair.first; });
+
+            return values[attempt(options, exclusive)].second;
+        }
+
+        template <typename T>
+        std::optional<T> maybe(const SelectMap<T> &values, bool exclusive = false) {
+            std::vector<std::string> options(values.size());
+            std::transform(values.begin(), values.end(), options.begin(), [](const auto &pair) { return pair.first; });
+
+            size_t result = attempt(options, exclusive, true);
+
+            return (result == options.size()) ? std::nullopt : std::optional<T>(values[result].second);
+        }
+
+        template <typename T>
+        T decide(const SelectMap<T> &values, T defaultValue, bool exclusive = false) {
+            auto v = maybe(values, exclusive);
+
+            return v ? *v : defaultValue;
         }
 
         std::unique_ptr<Node> pick(const std::vector<Link> &links, bool optional = false);

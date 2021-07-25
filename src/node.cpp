@@ -115,7 +115,7 @@ namespace hermes {
         return result;
     }
 
-    size_t Node::select(const std::vector<std::string> &values, bool exclusive, bool optional) {
+    size_t Node::attempt(const std::vector<std::string> &values, bool exclusive, bool optional) {
         for (size_t a = 0; a < values.size(); a++) {
             if (next(values[a], exclusive)) {
                 return a;
@@ -163,7 +163,7 @@ namespace hermes {
                 state.index = start;
 
                 if (e.level != MatchLevel::Light || !error)
-                    error = std::unique_ptr<ParseError>(new ParseError(e));
+                    error = std::make_unique<ParseError>(e);
             }
         }
 
