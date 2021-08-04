@@ -194,6 +194,6 @@ namespace hermes {
         tokenStoppable(parent->tokenStoppable), spaceStoppable(parent->spaceStoppable) { }
     Node::Node(State &state)
         : state(state), parent(nullptr), index(state.index) {
-        state.push(spaceStoppable);
+//        state.push(spaceStoppable); // do this yourself in root node
     }
 }
