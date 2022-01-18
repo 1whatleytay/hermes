@@ -2,6 +2,7 @@
 
 #include <hermes/error.h>
 
+#include <cstring>
 #include <sstream>
 #include <algorithm>
 

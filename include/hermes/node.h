@@ -3,6 +3,7 @@
 #include <hermes/error.h>
 #include <hermes/state.h>
 
+#include <memory>
 #include <vector>
 #include <functional>
 #include <unordered_map>
