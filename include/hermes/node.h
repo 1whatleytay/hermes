@@ -5,6 +5,7 @@
 
 #include <memory>
 #include <vector>
+#include <optional>
 #include <functional>
 #include <unordered_map>
 
